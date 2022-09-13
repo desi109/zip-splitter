@@ -32,30 +32,33 @@ public class ZipSplitter {
 
     protected static void splitZip() throws IOException {
         System.out.println("Process the whole zip file..");
-        FileInputStream fileInputStream = new FileInputStream(zipPath.toString());
-        ZipInputStream zipInputStream = new ZipInputStream(fileInputStream);
+
         ZipEntry entry = null;
+        int currentChunkedIndex = 1;
+        long currentSize = 0;
 
         //using just to get the uncompressed size of the zipEntries
         long entryCompressedSize = 0;
-        long currentSize = 0;
+        ZipFile zipFile = new ZipFile(zipPath.toFile());
+        Enumeration enumeration = zipFile.entries();
+
+
         String zipCoreName = zipPath.getFileName().toString().replace(ZIP_FILE_EXTENSION, "");
         String splitZipPathStr = new File(
                 outputPath.toString(),
                 zipCoreName + PART_POSTFIX + currentChunkIndex + ZIP_FILE_EXTENSION).toString();
 
-        ZipFile zipFile = new ZipFile(zipPath.toFile());
-        Enumeration enumeration = zipFile.entries();
-
         ZipOutputStream zipOutputStream = null;
 
-        try (FileOutputStream fileOutputStream = new FileOutputStream(splitZipPathStr);
+        try (FileInputStream fileInputStream = new FileInputStream(zipPath.toString()); 
+             ZipInputStream zipInputStream = new ZipInputStream(fileInputStream);
+             FileOutputStream fileOutputStream = new FileOutputStream(splitZipPathStr);
              BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream)) {
 
             zipOutputStream = new ZipOutputStream(bufferedOutputStream);
 
             while ((entry = zipInputStream.getNextEntry()) != null && enumeration.hasMoreElements()) {
-                ZipEntry zipEntry = (ZipEntry) enumeration.nextElement();
+                ZipEntry zipEntry = (ZipEntry) enumeration.nextElement(); 
                 System.out.println("Processing zip entry " + zipEntry.getName() + " with size " + zipEntry.getSize());
                 entryCompressedSize = zipEntry.getCompressedSize();
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -81,6 +84,8 @@ public class ZipSplitter {
                 outputStream.close();
                 zipInputStream.closeEntry();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             zipOutputStream.close();
             zipFile.close();
